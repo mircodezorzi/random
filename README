@@ -1,0 +1,17 @@
+Games:
+- minesweeper.c
+- 2048.c
+
+Algorithms:
+- hamming.c: hamming code exercise
+- hamming.py: hamming code exercise
+- huffman.py: text file compressor
+
+Systems:
+- scheduler.c: process schedule simulator
+
+Graphics:
+- visual_sorting.c: sorting algorithms visualized with SDL2
+
+Networking:
+- classeviva.py: classeviva messageboard downloader and telegram notifier
