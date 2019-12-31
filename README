@@ -1,3 +1,6 @@
+dz: functional c++11 stl
+modulator: javascript signal modulator
+
 Games:
 - minesweeper.c
 - 2048.c
