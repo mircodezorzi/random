@@ -1,8 +1,10 @@
 #ifndef INTERPRETER_H_
 #define INTERPRETER_H_
 
-#define clear() printf("\033[H\033[J")
+#include <stdio.h>
+#include <stdlib.h>
 
+#define clear() printf("\033[H\033[J")
 #define cursorto(x,y) printf("\033[%d;%dH", (y), (x))
 
 #define reset()         \
@@ -20,18 +22,27 @@ do {                                 \
 } while (0)
 
 /// \brief Interprets brainfuck code.
-void interpret(char *code, unsigned char *tape);
-
-/// \brief Transpiles brainfuck code to c imploding consecutive operations.
-void transpile(char *code);
-
-/// \brief Transpiles brainfuck code to c optimizing away everything except
-/// output operations.
-void transpile_constexpr(char *code, unsigned char *tape);
+void interpret(
+	const char    *code,
+	int            size,
+	unsigned char *tape,
+	int            msize);
 
 /// \brief Transpiles brainfuck code to c imploding consecutive operations and
 /// formatting the c source code in a pretty way. Also doesn't discard the
 /// comments.
-void transpile_pretty(char *code);
+void transpile(
+	FILE       *fp,
+	const char *code,
+	int         size);
+
+/// \brief Transpiles brainfuck code to c optimizing away everything except
+/// output operations.
+void transpile_constexpr(
+	FILE*          fp,
+	const char    *code,
+	int            size,
+	unsigned char *tape,
+	int            msize);
 
 #endif /* INTERPRETER_H_ */

@@ -1,2 +1,4 @@
 *.o
-bfc
+bf
+examples
+repl.*

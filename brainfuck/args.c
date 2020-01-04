@@ -25,6 +25,10 @@ void
 handle(int argc, char *argv[], struct settings *settings)
 {
 	if (argc < 2) usage();
+
+	settings->has_path_input  = 0;
+	settings->has_path_output = 0;
+
 	for (int i = 1; i < argc; i++) {
 		switch (argv[i][0]) {
 		case '-':
@@ -34,11 +38,26 @@ handle(int argc, char *argv[], struct settings *settings)
 				break;
 			case 'i': arg_path_input:
 				scan_path(argv[i + 1], settings->path_input, 512);
+				settings->has_path_input = 1;
 				break;
 			case 'o': arg_path_output:
 				scan_path(argv[i + 1], settings->path_output, 512);
+				settings->has_path_output = 1;
+				break;
+			case 't': arg_transpiler:
+				settings->interpreter = Transpiler;
 				break;
 			case '-':
+				if (strcmp("memory", argv[i] + 2) == 0)
+					goto arg_memory;
+				else if (strcmp("input", argv[i] + 2) == 0)
+					goto arg_path_input;
+				else if (strcmp("output", argv[i] + 2) == 0)
+					goto arg_path_output;
+				else if (strcmp("transpiler", argv[i] + 2) == 0)
+					goto arg_transpiler;
+				break;
+			default:
 				break;
 			}
 			break;
@@ -50,8 +69,8 @@ void
 usage()
 {
 	fprintf(stderr, "Usage:  bc [OPTIONS] code\n\n");
-	fprintf(stderr, "  -i Interpterer\n");
-	fprintf(stderr, "  -t Transpiler\n");
-	fprintf(stderr, "  -p Pretty Transpiler (may run in constexpr mode)\n");
+	fprintf(stderr, "  -m, --memory  set tape memory\n");
+	fprintf(stderr, "  -i, --input   input path for code\n");
+	fprintf(stderr, "  -o, --output  output path for transpiled code\n");
 	_exit(1);
 }

@@ -3,19 +3,36 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <inttypes.h>
+#include <math.h>
+#include <stdio.h>
+#include <time.h>
+
 void
-interpret(char *code, unsigned char *tape)
+interpret(const char    *code,
+		  int            size,
+		  unsigned char *tape,
+		  int            msize)
 {
 	unsigned char *ptr = tape;
 
-	/*reset();*/
-
-	for (int i = 0; i < strlen(code); i++) {
+	for (int i = 0; i < size; i++) {
 		char c = code[i];
 
 		switch(c) {
 
-		case '[': break;
+		case '[':
+			if (!*ptr) {
+				int loop = 1;
+				while (loop > 0) {
+					c = code[++i];
+					if (c == '[')
+						loop++;
+					else if (c == ']')
+						loop--;
+				}
+			}
+			break;
 
 		case ']':
 			if (*ptr) {
@@ -30,8 +47,16 @@ interpret(char *code, unsigned char *tape)
 			}
 			break;
 
-		case '.': fwrite(ptr, 1, 1, stdout); break;
-		case ',': *ptr = getchar_unlocked(); break;
+		case '.':
+			/*if (verbose)*/
+				/*fwrite(ptr, 1, 1, stdout);*/
+			printf("%c", *ptr);
+			break;
+		case ',':
+			/*if (verbose)*/
+				/*fflush(stdout);*/
+			*ptr = getchar();
+			break;
 
 		case '+': (*ptr)++; break;
 		case '-': (*ptr)--; break;
@@ -41,119 +66,144 @@ interpret(char *code, unsigned char *tape)
 
 		case ' ': break;
 		default:
-			while (code[i] != '\n' && i < strlen(code)) i++;
+			while (code[i] != '\n' && i < size) i++;
 			break;
 
 		}
 	}
 
-	fflush(stdout);
-
+	/*if (verbose)*/
+		fflush(stdout);
 }
 
 void
-transpile(char *code)
+transpile(FILE       *fp,
+		  const char *code,
+		  int         size)
 {
-	int indent = 1;
 
-	FILE *fp = fopen("output.c", "w");
+	int  indent = 1;
 
-	fprintf(fp, "#include <stdio.h>\n");
-	fprintf(fp, "#define g getchar()\n");
-	fprintf(fp, "#define P(p) putchar(p)\n");
-	fprintf(fp, "int main(){");
-	fprintf(fp, "char m[1024]={0};");
-	fprintf(fp, "char*p=m;");
+	fprintf(fp, "#include <stdio.h>\n\n");
+	fprintf(fp, "int main() {\n");
+	pprint("char array[1024] = { 0 };");
+	pprint("char *ptr = array;\n");
 
-	for (int i = 0; i < strlen(code); i++) {
+	for (int i = 0; i < size; i++) {
 		char c = code[i];
 		int  n = 1;
 
 		switch(c) {
 
 		case '[':
-			fprintf(fp, "while(*p){");
-			indent++;
+
+			if (code[i + 1] == '-' && code[i + 2] == ']') {
+				pprint("*ptr = 0;");
+				i += 2;
+			}
+			else {
+				pprint("while (*ptr) {");
+				indent++;
+			}
 			break;
 
 		case ']':
 			indent--;
-			fprintf(fp, "}");
+			pprint("}");
 			break;
 
 		case '.':
-			fprintf(fp, "P(*p);");
+			pprint("putchar(*ptr);");
 			break;
 
 		case ',':
-			fprintf(fp, "*p=G;");
+			pprint("*ptr = getchar();");
 			break;
 
 		case '+':
-			while (code[i + 1] == '+' && i < strlen(code)) { i++; n++; }
+			while (code[i + 1] == '+' && i < size) { i++; n++; }
 			if (n == 1)
-				fprintf(fp, "++*p;");
+				pprint("++*ptr;");
 			else
-				fprintf(fp, "*p+=%d;", n);
+				pprint("*ptr += %d;", n);
 			break;
 
 		case '-':
-			while (code[i + 1] == '-' && i < strlen(code)) { i++; n++; }
+			while (code[i + 1] == '-' && i < size) { i++; n++; }
 			if (n == 1)
-				fprintf(fp, "--*p;");
+				pprint("--*ptr;");
 			else
-				fprintf(fp, "*p-=%d;", n);
+				pprint("*ptr -= %d;", n);
 			break;
 
 		case '>':
-			while (code[i + 1] == '>' && i < strlen(code)) { i++; n++; }
+			while (code[i + 1] == '>' && i < size) { i++; n++; }
 			if (n == 1)
-				fprintf(fp, "++p;");
+				pprint("++ptr;");
 			else
-				fprintf(fp, "p+=%d;", n);
+				pprint("ptr += %d;", n);
 			break;
 
 		case '<':
-			while (code[i + 1] == '<' && i < strlen(code)) { i++; n++; }
+			while (code[i + 1] == '<' && i < size) { i++; n++; }
 			if (n == 1)
-				fprintf(fp, "--p;");
+				pprint("--ptr;");
 			else
-				fprintf(fp, "p-=%d;", n);
+				pprint("ptr -= %d;", n);
 			break;
 
+		case '\n': break;
 		case ' ': break;
+
 		default:
-			while (code[i] != '\n' && i < strlen(code)) i++;
+			fprintf(fp, " // ");
+			while (code[i] != '\n' && i < size) {
+				fprintf(fp, "%c", code[i]);
+				i++;
+			}
 			break;
 
 		}
 	}
 
-	fprintf(fp, "}");
-	fclose(fp);
+	fprintf(fp, "\n}");
 
 }
 
 void
-transpile_constexpr(char *code, unsigned char *tape)
+transpile_constexpr(FILE          *fp,
+					const char    *code,
+					int            size,
+					unsigned char *tape,
+					int            msize)
 {
-	FILE *fp = fopen("output.c", "w");
 
 	fprintf(fp, "#include <stdio.h>\n\n");
 	fprintf(fp, "int main() {\n");
 
 	/* output buffer */
-	char buffer[1024] = { 0 };
+	char buffer[4096 * 4] = { 0 };
 	char *index = buffer;
 
 	unsigned char *ptr = tape;
 
-	for (int i = 0; i < strlen(code); i++) {
+	for (int i = 0; i < size; i++) {
 		char c = code[i];
 
 		switch(c) {
 
-		case '[': break;
+		case '[':
+			if (!*ptr) {
+				int loop = 1;
+				while (loop > 0) {
+					c = code[++i];
+					if (c == '[')
+						loop++;
+					else if (c == ']')
+						loop--;
+				}
+			}
+			break;
 
 		case ']':
 			if (*ptr) {
@@ -179,101 +229,15 @@ transpile_constexpr(char *code, unsigned char *tape)
 		case '>': ptr++;    break;
 		case '<': ptr--;    break;
 
+		case '\n': break;
 		case ' ': break;
 		default:
-			while (code[i] != '\n' && i < strlen(code)) i++;
+			while (code[i] != '\n' && i < size) i++;
 			break;
 
 		}
 	}
 
 	fprintf(fp, "\tprintf(R\"(%s)\");\n}", buffer);
-	fclose(fp);
 
-}
-
-void
-transpile_pretty(char *code)
-{
-	int indent = 1;
-
-	FILE *fp = fopen("output.c", "w");
-
-	fprintf(fp, "#include <stdio.h>\n\n");
-	fprintf(fp, "int main() {\n");
-	pprint("char array[1024] = { 0 };");
-	pprint("char *ptr = array;\n");
-
-	for (int i = 0; i < strlen(code); i++) {
-		char c = code[i];
-		int  n = 1;
-
-		switch(c) {
-
-		case '[':
-			pprint("while (*ptr) {");
-			indent++;
-			break;
-
-		case ']':
-			indent--;
-			pprint("}");
-			break;
-
-		case '.':
-			pprint("putchar(*ptr);");
-			break;
-
-		case ',':
-			pprint("*ptr = getchar();");
-			break;
-
-		case '+':
-			while (code[i + 1] == '+' && i < strlen(code)) { i++; n++; }
-			if (n == 1)
-				pprint("++*ptr;");
-			else
-				pprint("*ptr += %d;", n);
-			break;
-
-		case '-':
-			while (code[i + 1] == '-' && i < strlen(code)) { i++; n++; }
-			if (n == 1)
-				pprint("--*ptr;");
-			else
-				pprint("*ptr -= %d;", n);
-			break;
-
-		case '>':
-			while (code[i + 1] == '>' && i < strlen(code)) { i++; n++; }
-			if (n == 1)
-				pprint("++ptr;");
-			else
-				pprint("ptr += %d;", n);
-			break;
-
-		case '<':
-			while (code[i + 1] == '<' && i < strlen(code)) { i++; n++; }
-			if (n == 1)
-				pprint("--ptr;");
-			else
-				pprint("ptr -= %d;", n);
-			break;
-
-		case ' ': break;
-
-		default:
-			fprintf(fp, " // ");
-			while (code[i] != '\n' && i < strlen(code)) {
-				fprintf(fp, "%c", code[i]);
-				i++;
-			}
-			break;
-
-		}
-	}
-
-	fprintf(fp, "\n}");
-
-	fclose(fp);
 }

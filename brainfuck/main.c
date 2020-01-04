@@ -10,18 +10,30 @@
 #include "args.h"
 #include "heuristics.h"
 #include "interpreter.h"
-#include "repl.h"
+
+void compile(const char *path)
+{
+	char buffer[128] = { 0 };
+	snprintf(buffer, 128, "gcc %s -o %s.out -O3", path, path);
+	system(buffer);
+}
+
+void exec(const char *path)
+{
+	char buffer[128] = { 0 };
+	snprintf(buffer, 128, "./%s.out", path);
+	system(buffer);
+}
 
 int
 main(int argc, char *argv[])
 {
 
 	struct settings settings = {
-		.size          = 2048,
+		.size          = 4096,
 		.interpreter   = Interpterer,
 		.optimizations = {
-			.expr = 1,
-			.fold = 1,
+			.expr = 0,
 		},
 	};
 
@@ -30,46 +42,50 @@ main(int argc, char *argv[])
 	unsigned char tape[settings.size];
 	memset(tape, 0, settings.size);
 
-	if (settings.path_input) {
+	/* input code */
+	char *code;
+	int size;
+
+	/* output file pointer */
+	FILE *fp;
+
+	if (settings.has_path_input) {
 		int fd = open(settings.path_input, O_RDONLY);
-		int size = lseek(fd, 0, SEEK_END);
-		char *str = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-		printf("%s\n", str);
+		size = lseek(fd, 0, SEEK_END);
+		code = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 	}
+
+	int flags = analyze(code, size);
 
 	switch (settings.interpreter) {
 
 	case Interpterer:
-		printf("lunching interpreter...\n");
-		analyze(argv[2]);
-		interpret(argv[2], tape);
+		interpret(code, size, tape, 0);
 		break;
 
 	case Transpiler:
-		printf("lunching transpiler...\n");
-		transpile(argv[2]);
-		printf("executing output...\n");
-		system("gcc output.c -o output && ./output");
-		break;
 
-	case PrettyTranspiler:
-		printf("lunching pretty transpiler...\n");
-		if (analyze(argv[2]) & 1) {
-			printf("detected code to be constexpr...\n");
-			transpile_constexpr(argv[2], tape);
-		} else if ((analyze(argv[2]) & 1) && (analyze(argv[2]) & 2)) {
-			printf("detected code without output, won't generate any code...\n");
+		if (settings.has_path_output)
+			fp = fopen(settings.path_output, "w");
+		else _exit(1);
+
+		if ((flags & IS_CONSTEXPR) && settings.optimizations.expr) {
+			transpile_constexpr(fp, code, size, tape, 0);
+		} else if ((flags & IS_CONST) && (flags & IS_CONSTEXPR)) {
+			/* do nothing */
 		} else {
-			transpile_pretty(argv[2]);
+			transpile(fp, code, size);
 		}
-		printf("executing output...\n");
-		system("gcc output.c -o output && ./output");
+
+		fclose(fp);
+		compile(settings.path_output);
+		exec(settings.path_output);
+
 		break;
 
 	default:
 		break;
 
 	}
-
 
 }
