@@ -11,9 +11,9 @@ Games:
 - 2048.c (2019-02)
 
 Algorithms:
-- hamming.c: hamming code exercise
-- hamming.py: hamming code exercise
-- huffman.py: text file compressor
+- hamming.c : hamming code exercise (2019-02)
+- hamming.py: hamming code exercise (2019-02)
+- huffman.py: text file compressor (2019-02)
 
 Systems:
 - scheduler.c: process schedule simulator (2019-02)
