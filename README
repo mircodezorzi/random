@@ -1,9 +1,14 @@
-dz: functional c++11 stl
+Some of the code here dates back to 2018 so be warned...
+
+brainfuck: brainfuck compiler and c tranpiler
+cc2019   : random exploits from the Cyberchallenge 2019 at Padua
+dz       : functional c++11 stl
+kana     : tool to learn the japanese alphabet (2018-07)
 modulator: javascript signal modulator
 
 Games:
-- minesweeper.c
-- 2048.c
+- minesweeper.c (2018-12)
+- 2048.c (2019-02)
 
 Algorithms:
 - hamming.c: hamming code exercise
@@ -11,10 +16,11 @@ Algorithms:
 - huffman.py: text file compressor
 
 Systems:
-- scheduler.c: process schedule simulator
+- scheduler.c: process schedule simulator (2019-02)
 
 Graphics:
-- visual_sorting.c: sorting algorithms visualized with SDL2
+- visual_sorting.c: sorting algorithms visualized with SDL2 (2018-12)
 
 Networking:
 - classeviva.py: classeviva messageboard downloader and telegram notifier
+
