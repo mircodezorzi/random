@@ -29,7 +29,10 @@ namespace dz
 			Node<T> *dx;
 			T value;
 
-			Node(T value_, Node<T> *sx_, Node<T> *dx_) : sx{sx_}, dx{dx_} , value{value_} {}
+			Node(T value_, Node<T> *sx_, Node<T> *dx_)
+				: sx{sx_}
+				, dx{dx_}
+				, value{value_} {}
 		};
 
 	} // namespace detail
@@ -39,109 +42,63 @@ namespace dz
 	template <typename T>
 	class Tree
 	{
-	public:
-
 	private:
 		detail::Node<T> *head;
-		int count;
+		int              count;
 
-		void stream(std::ostream &os, detail::Node<T> *h, DisplayMethod method) const
+		void stream(std::ostream &os, detail::Node<T> *n, const std::string &delim, DisplayMethod method) const
 		{
 			switch (method) {
 			case DisplayMethod::PreOrder:
-				os << h->value << " ";
-				if (h->sx) stream(os, h->sx, method);
-				if (h->dx) stream(os, h->dx, method);
+				os << n->value << delim;
+				if (n->sx) stream(os, n->sx, delim, method);
+				if (n->dx) stream(os, n->dx, delim, method);
 				break;
 			case DisplayMethod::PostOrder:
-				if (h->sx) stream(os, h->sx, method);
-				if (h->dx) stream(os, h->dx, method);
-				os << h->value << " ";
+				if (n->sx) stream(os, n->sx, delim, method);
+				if (n->dx) stream(os, n->dx, delim, method);
+				os << n->value << delim;
 				break;
 			case DisplayMethod::InOrder:
-				if (h->sx) stream(os, h->sx, method);
-				os << h->value << " ";
-				if (h->dx) stream(os, h->dx, method);
+				if (n->sx) stream(os, n->sx, delim, method);
+				os << n->value << delim;
+				if (n->dx) stream(os, n->dx, delim, method);
 				break;
 			}
 		}
 
-		/// \brief Return node with biggest value in subtree
-		detail::Node<T> *max(detail::Node<T> *h)
-		{
-			auto cur = h;
-			while (cur->dx != nullptr)
-				cur = cur->dx;
-			return cur;
+		/// \brief Remove node with element i in tree.
+		detail::Node<T> *erase(detail::Node<T> *n, T i) {
+			if (n == nullptr) {
+				return n;
+			} else if (i < n->value) {
+				n->sx = erase(n->sx, i);
+			} else if (i > n->value) {
+				n->dx = erase(n->dx, i);
+			} else {
+				if (n->sx == nullptr) {
+					return n->dx;
+				} else if (n->dx == nullptr) {
+					return n->sx;
+				} else {
+					n->value = n->sx->value;
+					n->sx = erase(n->sx, n->value);
+				}
+			}
+			return n;
 		}
 
 	public:
 		class Iterator;
 
-		Tree() : head{nullptr}, count{0} {}
+		Iterator begin() const { return Iterator{head}; }
+		Iterator end()  const { return Iterator{head}; }
 
-		~Tree()
-		{
-			while (!empty())
-				pop();
-		}
+		Tree()
+			: head{nullptr}
+			, count{0} {}
 
-		void erase(T i)
-		{
-			erase(head, i);
-		}
-
-		T pop()
-		{
-			return erase(head, top())->value;
-		}
-
-		T top() const
-		{
-			return head->value;
-		}
-
-		detail::Node<T> *erase(detail::Node<T> *h, T i)
-		{
-			if (h == nullptr) return h;
-
-			if (i < h->value) {
-				h->sx = erase(h->sx, i);
-			} else if (i > h->value) {
-				h->dx = erase(h->dx, i);
-			} else {
-				if(h->dx == nullptr && h->sx == nullptr) {
-					delete h;
-					return h = nullptr;
-				} else if (h->sx == nullptr) {
-					auto tmp = h->dx;
-					delete h;
-					return tmp;
-				} else if (h->dx == nullptr) {
-					auto tmp = h->sx;
-					delete h;
-					return tmp;
-				} else {
-					auto tmp = max(h->sx);
-					h->value = tmp->value;
-					h->sx = erase(h->sx, tmp->value);
-				}
-			}
-			return h;
-		}
-
-		bool empty() const
-		{
-			return !(head->sx && head->dx);
-		}
-
-		template <typename ... Args>
-		void push(T i, const Args& ... args)
-		{
-			push(i);
-			push(args...);
-		}
-
+		/// \brief Push an element into the tree.
 		void push(const T &i)
 		{
 			if (head == nullptr) {
@@ -150,102 +107,145 @@ namespace dz
 				return;
 			}
 
-			auto h = &head;
-			while (*h != nullptr) {
-				if (i < (*h)->value)
-					h = &(*h)->sx;
-				else if (i > (*h)->value)
-					h = &(*h)->dx;
+			auto n = &head;
+			while (*n != nullptr) {
+				if (i < (*n)->value)
+					n = &(*n)->sx;
+				else if (i > (*n)->value)
+					n = &(*n)->dx;
 				else break;
 			}
-			*h = new detail::Node<T>{i, nullptr, nullptr};
+			*n = new detail::Node<T>{i, nullptr, nullptr};
 			count++;
 		}
 
-		void stream(std::ostream &os, DisplayMethod method = DisplayMethod::PreOrder) const
+		/// \brief Push any amount of elements into the tree.
+		template <typename ... Args>
+		void push(T i, const Args& ... args)
 		{
-			if (head)
-				stream(os, head, method);
+			push(i);
+			push(args...);
 		}
 
-		Iterator iterator() const
+		/// \brief Returns the root of the tree.
+		T top() const
 		{
-			return Iterator{head};
+			return head->value;
 		}
 
-		void map(const std::function<void(T)> &f) const
+		/// \brief Removes and returns the root of the tree.
+		T pop()
 		{
-			auto it = iterator();
-			while (it.has_next()) f(it.next());
+			return erase(head, top())->value;
+		}
+
+		/// \brief Erases the element in the tree with value i.
+		void erase(T i)
+		{
+			erase(head, i);
+		}
+
+		/// \brief Erases as many element in the tree with values...
+		template <typename ... Args>
+		void erase(T i, const Args& ... args)
+		{
+			erase(i);
+			erase(args...);
+		}
+
+		bool empty() const
+		{
+			return !(head->sx && head->dx);
+		}
+
+		/// \brief Save container to file.
+		///
+		/// Type must implement operator<<.
+		template <typename T_ = T,
+			typename std::enable_if<has_operator_ostream<T>::value>::type* = nullptr>
+		void stream(std::ostream &os, const std::string &delim = " ", DisplayMethod method = DisplayMethod::PreOrder) const
+		{
+			for (auto &i : *this)
+				os << i << delim;
+			//if (head)
+				//stream(os, head, delim, method);
 		}
 
 		void map(const std::function<void(T&)> &f)
 		{
-			auto it = iterator();
-			while (it.has_next()) f(it.next());
+			for (auto &i : *this)
+				f(i);
 		}
 
 		void map(const std::function<void(const T&)> &f) const
 		{
-			auto it = iterator();
-			while (it.has_next()) f(it.next());
+			for (const auto &i : *this)
+				f(i);
 		}
 
+		/// \brief If a tree gets mutated by a function applied to
+		/// it, this function will sort it.
 		void sort()
 		{
-			auto it = iterator();
 			Tree<T> t{};
-			while (it.has_next()) t.push(it.next());
+			for (const auto &i : *this)
+				t.push(i);
 			*this = t;
 		}
 
 	};
 
-
 	template <typename T>
 	class Tree<T>::Iterator
 	{
 	private:
-		detail::Node<T> *h;
-		detail::Node<T> *head;
+		detail::Node<T> *n;
+		T               *value;
+
 		containers::Stack<detail::Node<T>*> backtrack;
 
+		/// used to botch operator!=
+		bool next;
+		bool prev;
+
 	public:
-		Iterator(detail::Node<T> *h_)
-			: h{h_}
-			, head{h_}
+		Iterator(detail::Node<T> *n_)
+			: n{n_}
+			, value{&n_->value}
 			, backtrack{}
+			, next{true}
+			, prev{true}
 		{
-			backtrack.push(h);
+			backtrack.push(n);
 		}
 
-		void reset()
+		void operator++()
 		{
-			h = head;
-			backtrack.clear();
-			backtrack.push(h);
-		}
-
-		T &next()
-		{
-			backtrack.push(h);
-			if (h->sx) {
-				h = h->sx;
-				return h->value;
+			backtrack.push(n);
+			if (n->sx) {
+				n = n->sx;
+				value = &n->value;
+				return;
 			}
-			while (h) {
-				if (h->dx) {
-					h = h->dx;
-					return h->value;
+			while (n) {
+				if (n->dx) {
+					n = n->dx;
+					value = &n->value;
+					return;
 				}
-				h = backtrack.pop();
+				n = backtrack.pop();
 			}
 		}
 
-		bool has_next()
+
+		bool operator!=(Iterator _)
 		{
-			return h->sx || h->dx || backtrack.top()->sx;
+			prev = next;
+			next = n->sx || n->dx || backtrack.top()->sx;
+			return prev;
 		}
+
+		T &operator*() { return *value; }
 
 	};
 

@@ -20,6 +20,11 @@ int main()
 	Queue<int> q;
 	q.push(3, 1, 2, 4, 7, 5, 9, 6, 8, 0);
 
+	cout << "range based loop on queue: ";
+	for (const auto i : q)
+		cout << i << " ";
+	cout << endl;
+
 	cout << "queue: ";
 	q.map([](int i) { cout << i << ' '; });
 	cout << endl;
@@ -48,24 +53,18 @@ int main()
 	Tree<int> t;
 	t.push(10, 5, 20, 25, 60, 15, 70, 55, 100, 45, 65, 85, 90);
 
-	t.stream(cout, dz::DisplayMethod::InOrder);
+	t.stream(cout, " ", dz::DisplayMethod::PreOrder);
 	cout << endl;
 
 	t.map([](int &i) { if(!(i % 10)) i *= 2; });
-
 	t.sort();
 
-	t.stream(cout, dz::DisplayMethod::InOrder);
+	t.stream(cout, " ", dz::DisplayMethod::PreOrder);
 	cout << endl;
 
-	t.erase(20);
-	t.erase(45);
-	t.erase(15);
-	t.erase(15);
-	t.erase(55);
-	t.erase(5);
+	t.erase(20, 45, 15, 15, 55, 5);
 
-	t.stream(cout, dz::DisplayMethod::InOrder);
+	t.stream(cout, " ", dz::DisplayMethod::PreOrder);
 	cout << endl;
 
 	return 0;

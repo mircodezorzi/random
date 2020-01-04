@@ -6,6 +6,8 @@
 #include <iostream>
 #include <array>
 
+#include "sfinae.hpp"
+
 namespace dz
 {
 
@@ -13,7 +15,7 @@ namespace dz
 	namespace containers
 	{
 
-		/// \brief Throws when trying to access empty container
+		/// \brief Thrown when trying to access empty container
 		struct Empty : public std::exception
 		{
 			const char *what () const throw()
@@ -34,17 +36,36 @@ namespace dz
 				Node(T value_, Node<T> *next_)
 					: next{next_}
 					, value{value_} {}
+
+				Node(Node<T> *n_)
+					: next{n_->next}
+					, value{n_->value} {}
 			};
 
+			/// \brief Base Container Class
 			template <typename T>
 			class Container
 			{
 			protected:
 				Node<T> *head;
 				Node<T> *tail;
-				int count;
+				int      count;
+
+				_Pragma("GCC diagnostic push")
+				_Pragma("GCC diagnostic ignored \"-Wreturn-type\"")
+
+				virtual void _push(const T &i) = 0;
+				virtual T _pop() = 0;
+				virtual T _pop(int i) {}
+
+				_Pragma("GCC diagnostic pop")
 
 			public:
+				class Iterator;
+
+				Iterator begin() const { return Iterator{head}; }
+				Iterator end()   const { return Iterator{tail}; }
+
 				Container()
 					: head{nullptr}
 					, tail{nullptr}
@@ -52,16 +73,13 @@ namespace dz
 
 				virtual ~Container()
 				{
-					clear();
-				}
-
-				/// \brief Clear container.
-				void clear()
-				{
 					auto tmp = head;
 					while (tmp) {
 						auto next = tmp->next;
-						delete tmp;
+						if (tmp->next) {
+							tmp->next = nullptr;
+							delete tmp;
+						}
 						tmp = next;
 					}
 					head = nullptr;
@@ -69,21 +87,34 @@ namespace dz
 					count = 0;
 				}
 
-				template <typename ... Args>
-				void push(T i, const Args& ... args)
-				{
-					push(i);
-					push(args...);
-				}
-
+				/// \brief Push an element into the container (policy is based
+				/// on the container implementation).
+				///
+				/// Wrapper function to automatically keep track of the element
+				/// count in the container.
 				void push(const T &i)
 				{
 					_push(i);
 					count++;
 				}
 
-				virtual void _push(const T &i) = 0;
+				/// \brief Push any amount of elements into the container
+				/// (policy is based on the container implementation).
+				///
+				/// Wrapper function to automatically keep track of the element
+				/// count in the container.
+				template <typename ... Args>
+				void push(const T &i, const Args& ... args)
+				{
+					push(i);
+					push(args...);
+				}
 
+				/// \brief Remove an element from the container (policy is
+				/// based on the container implementation).
+				///
+				/// Wrapper function to automatically keep track of the element
+				/// count in the container.
 				T pop()
 				{
 					T tmp{_pop()};
@@ -91,15 +122,17 @@ namespace dz
 					return tmp;
 				}
 
+				/// \brief Remove an element at position i from the container
+				/// (policy is based on the container implementation).
+				///
+				/// Wrapper function to automatically keep track of the element
+				/// count in the container.
 				T pop(int i)
 				{
 					T tmp{_pop(i)};
 					count--;
 					return tmp;
 				}
-
-				virtual T _pop([[maybe_unused]] int i) {}
-				virtual T _pop() {}
 
 				bool empty() const
 				{
@@ -141,8 +174,8 @@ namespace dz
 
 				/// \brief Load container from file.
 				///
-				/// Iterates though every line of the file, pushing the object returned
-				/// by callback, called on each linen.
+				/// Iterates though every line of the file, pushing the object
+				/// returned by callback, called on each linen.
 				void load(const std::string &filepath, const std::function<T(const std::string&)> &callback)
 				{
 					std::string s;
@@ -154,9 +187,9 @@ namespace dz
 
 				/// \brief Save container to file.
 				///
-				/// Type must implement operator<<().
+				/// Type must implement operator<<.
 				template <typename T_ = T,
-					typename std::enable_if<(sizeof(static_cast<std::ostream &(std::ostream::*)(T_)>(&std::ostream::operator<<)))>::type* = nullptr>
+					typename std::enable_if<has_operator_ostream<T>::value>::type* = nullptr>
 				void save(const std::string &filepath) const
 				{
 					std::ifstream f;
@@ -167,8 +200,8 @@ namespace dz
 
 				/// \brief Save container to file.
 				///
-				/// Iterate though each node of the container, streaming the returned
-				/// value from callback to the file.
+				/// Iterate though each node of the container, streaming the
+				/// returned value from callback to the file.
 				void save(const std::string filepath, const std::function<T(const std::string&)> &callback) const
 				{
 					std::ifstream f;
@@ -177,12 +210,18 @@ namespace dz
 					f.close();
 				}
 
-				/// \brief Streams all container nodes to ostream
+				/// \brief Streams all container nodes to ostream.
 				template <typename T_ = T,
-					typename std::enable_if<(sizeof(static_cast<std::ostream &(std::ostream::*)(T_)>(&std::ostream::operator<<)))>::type* = nullptr>
+					typename std::enable_if<has_operator_ostream<T>::value>::type* = nullptr>
 				void stream(std::ostream &os, const std::string &delim = " ") const
 				{
 					map([&os, &delim](const T &i) { os << i << delim; });
+				}
+
+				void map(const std::function<void(T&)> &f)
+				{
+					for (auto i = head; i; i = i->next)
+						f(i->value);
 				}
 
 				void map(const std::function<void(const T&)> &f) const
@@ -193,11 +232,25 @@ namespace dz
 
 			};
 
+			template <typename T>
+			class Container<T>::Iterator
+			{
+			private:
+				Node<T> *n;
+			public:
+				Iterator(Node<T>* n_) : n{n_} {}
+				void operator++() { n = n->next; }
+				bool operator!=(Iterator rhs) { return n != rhs.n->next; }
+				T &operator*() { return n->value; }
+			};
+
 		} // namespace detail
 
+		/// \brief Stack
 		template <typename T>
 		class Stack final : public detail::Container<T>
 		{
+		private:
 			using detail::Container<T>::head;
 			using detail::Container<T>::count;
 
@@ -239,9 +292,11 @@ namespace dz
 
 		};
 
+		/// \brief Queue
 		template <typename T>
 		class Queue : public detail::Container<T>
 		{
+		private:
 			using detail::Container<T>::head;
 			using detail::Container<T>::tail;
 			using detail::Container<T>::count;
@@ -293,6 +348,7 @@ namespace dz
 
 		};
 
+		/// \brief Linked List
 		template <typename T>
 		class List : public detail::Container<T>
 		{
@@ -333,7 +389,7 @@ namespace dz
 					return v;
 				} else {
 					auto cur = head;
-					for (int i = 2; i < pos && cur->next; ++i, cur = cur->next);
+					for (int i = 2; i < pos && cur->next; cur = cur->next) i++;
 					if(this->empty()) throw Empty();
 					auto tmp = cur->next;
 					auto v = cur->next->value;
@@ -345,10 +401,13 @@ namespace dz
 
 		};
 
-
+		/// \brief Ordered Linked List
+		///
+		/// By default uses a compare function to decide the order of the inserted elements.
 		template <typename T>
 		class OrderedList : public List<T>
 		{
+		private:
 			using List<T>::head;
 			using List<T>::count;
 
@@ -367,7 +426,10 @@ namespace dz
 
 		public:
 			using List<T>::push;
-			using List<T>::List;
+
+			template <typename T_ = T,
+				typename std::enable_if<has_operator_greater<T>::value>::type* = nullptr>
+			OrderedList() : List<T>{} {}
 
 			OrderedList(std::function<bool(const T&, const T&)> compare_) : List<T>{} , compare{compare_} {}
 
