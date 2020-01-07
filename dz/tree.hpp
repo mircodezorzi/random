@@ -46,23 +46,25 @@ namespace dz
 		detail::Node<T> *head;
 		int              count;
 
-		void stream(std::ostream &os, detail::Node<T> *n, const std::string &delim, DisplayMethod method) const
+		void stream(std::ostream &os, detail::Node<T> *n, const std::string &delim, DisplayMethod method, int &nth) const
 		{
+			nth += 1;
+
 			switch (method) {
 			case DisplayMethod::PreOrder:
-				os << n->value << delim;
-				if (n->sx) stream(os, n->sx, delim, method);
-				if (n->dx) stream(os, n->dx, delim, method);
+				os << n->value << (nth < size() ? delim : "");
+				if (n->sx) stream(os, n->sx, delim, method, nth);
+				if (n->dx) stream(os, n->dx, delim, method, nth);
 				break;
 			case DisplayMethod::PostOrder:
-				if (n->sx) stream(os, n->sx, delim, method);
-				if (n->dx) stream(os, n->dx, delim, method);
-				os << n->value << delim;
+				if (n->sx) stream(os, n->sx, delim, method, nth);
+				if (n->dx) stream(os, n->dx, delim, method, nth);
+				os << n->value << (nth < size() ? delim : "");
 				break;
 			case DisplayMethod::InOrder:
-				if (n->sx) stream(os, n->sx, delim, method);
-				os << n->value << delim;
-				if (n->dx) stream(os, n->dx, delim, method);
+				if (n->sx) stream(os, n->sx, delim, method, nth);
+				os << n->value << (nth < size() ? delim : "");
+				if (n->dx) stream(os, n->dx, delim, method, nth);
 				break;
 			}
 		}
@@ -158,6 +160,11 @@ namespace dz
 			return !(head->sx && head->dx);
 		}
 
+		int size() const
+		{
+			return count;
+		}
+
 		/// \brief Save container to file.
 		///
 		/// Type must implement operator<<.
@@ -165,10 +172,9 @@ namespace dz
 			typename std::enable_if<has_operator_ostream<T>::value>::type* = nullptr>
 		void stream(std::ostream &os, const std::string &delim = " ", DisplayMethod method = DisplayMethod::PreOrder) const
 		{
-			for (auto &i : *this)
-				os << i << delim;
-			//if (head)
-				//stream(os, head, delim, method);
+			int nth = 0;
+			if (head)
+				stream(os, head, delim, method, nth);
 		}
 
 		void map(const std::function<void(T&)> &f)
@@ -183,8 +189,8 @@ namespace dz
 				f(i);
 		}
 
-		/// \brief If a tree gets mutated by a function applied to
-		/// it, this function will sort it.
+		/// \brief If a tree gets mutated by a function applied to it, this
+		/// function will sort it.
 		void sort()
 		{
 			Tree<T> t{};
@@ -204,7 +210,7 @@ namespace dz
 
 		containers::Stack<detail::Node<T>*> backtrack;
 
-		/// used to botch operator!=
+		// used to botch operator!=
 		bool next;
 		bool prev;
 
