@@ -5,6 +5,7 @@ cc2019   : random exploits from the Cyberchallenge 2019 at Padua
 dz       : functional c++11 stl
 kana     : tool to learn the japanese alphabet (2018-07)
 modulator: javascript signal modulator
+IEEE     : convert floating point numbers to binary following the IEEE 754 standard (2018-11)
 
 Games:
 - minesweeper.c (2018-12)
