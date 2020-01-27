@@ -11,7 +11,7 @@ namespace detail
 	struct has_operator_greater_impl
 	{
 		template <typename T_ = T, typename U_ = U> // template parameters here to enable SFINAE
-		static auto test(T &&t, U &&u) -> decltype(t > u, void(), std::true_type{});
+		static auto test(T_ &&t, U_ &&u) -> decltype(t > u, void(), std::true_type{});
 		static auto test(...) -> std::false_type;
 		using type = decltype(test(std::declval<T>(), std::declval<U>()));
 	};
@@ -20,7 +20,7 @@ namespace detail
 	struct has_operator_ostream_impl
 	{
 		template <typename T_ = T> // template parameters here to enable SFINAE
-		static auto test(std::ostream &&os, T &&t) -> decltype(os << t, void(), std::true_type{});
+		static auto test(std::ostream &&os, T_ &&t) -> decltype(os << t, void(), std::true_type{});
 		static auto test(...) -> std::false_type;
 		using type = decltype(test(std::declval<std::ostream>(), std::declval<T>()));
 	};

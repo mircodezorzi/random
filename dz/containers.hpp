@@ -1,10 +1,11 @@
 #ifndef DZ_CONTAINERS_HPP_
 #define DZ_CONTAINERS_HPP_
 
+#include <array>
 #include <fstream>
 #include <functional>
 #include <iostream>
-#include <array>
+#include <sstream>
 
 #include "sfinae.hpp"
 
@@ -87,22 +88,22 @@ namespace dz
 					count = 0;
 				}
 
-				/// \brief Push an element into the container (policy is based
-				/// on the container implementation).
+				/// \brief Push an element into the container (policy is based on the
+				/// container implementation).
 				///
-				/// Wrapper function to automatically keep track of the element
-				/// count in the container.
+				/// Wrapper function to automatically keep track of the element count
+				/// in the container.
 				void push(const T &i)
 				{
 					_push(i);
 					count++;
 				}
 
-				/// \brief Push any amount of elements into the container
-				/// (policy is based on the container implementation).
+				/// \brief Push any amount of elements into the container (policy is
+				/// based on the container implementation).
 				///
-				/// Wrapper function to automatically keep track of the element
-				/// count in the container.
+				/// Wrapper function to automatically keep track of the element count
+				/// in the container.
 				template <typename ... Args>
 				void push(const T &i, const Args& ... args)
 				{
@@ -110,11 +111,11 @@ namespace dz
 					push(args...);
 				}
 
-				/// \brief Remove an element from the container (policy is
-				/// based on the container implementation).
+				/// \brief Remove an element from the container (policy is based on the
+				/// container implementation).
 				///
-				/// Wrapper function to automatically keep track of the element
-				/// count in the container.
+				/// Wrapper function to automatically keep track of the element count
+				/// in the container.
 				T pop()
 				{
 					T tmp{_pop()};
@@ -122,13 +123,14 @@ namespace dz
 					return tmp;
 				}
 
-				/// \brief Remove an element at position i from the container
-				/// (policy is based on the container implementation).
+				/// \brief Remove an element at position i from the container (policy
+				/// is based on the container implementation).
 				///
-				/// Wrapper function to automatically keep track of the element
-				/// count in the container.
+				/// Wrapper function to automatically keep track of the element count
+				/// in the container.
 				T pop(int i)
 				{
+					assert(i <= size());
 					T tmp{_pop(i)};
 					count--;
 					return tmp;
@@ -174,8 +176,8 @@ namespace dz
 
 				/// \brief Load container from file.
 				///
-				/// Iterates though every line of the file, pushing the object
-				/// returned by callback, called on each linen.
+				/// Iterates though every line of the file, pushing the object returned
+				/// by callback, called on each linen.
 				void load(const std::string &filepath, const std::function<T(const std::string&)> &callback)
 				{
 					std::string s;
@@ -188,9 +190,8 @@ namespace dz
 				/// \brief Save container to file.
 				///
 				/// Type must implement operator<<.
-				template <typename T_ = T,
-					typename std::enable_if<has_operator_ostream<T>::value>::type* = nullptr>
-				void save(const std::string &filepath) const
+				auto save(const std::string &filepath) const
+					-> decltype(has_operator_ostream<T>::value)
 				{
 					std::ifstream f;
 					f.open(filepath);
@@ -200,8 +201,8 @@ namespace dz
 
 				/// \brief Save container to file.
 				///
-				/// Iterate though each node of the container, streaming the
-				/// returned value from callback to the file.
+				/// Iterate though each node of the container, streaming the returned
+				/// value from callback to the file.
 				void save(const std::string filepath, const std::function<T(const std::string&)> &callback) const
 				{
 					std::ifstream f;
@@ -211,11 +212,23 @@ namespace dz
 				}
 
 				/// \brief Streams all container nodes to ostream.
-				template <typename T_ = T,
-					typename std::enable_if<has_operator_ostream<T>::value>::type* = nullptr>
-				void stream(std::ostream &os, const std::string &delim = " ") const
+				auto stream(std::ostream &os, const std::string &delim = " ") const
+					-> decltype(has_operator_ostream<T>::value)
 				{
-					map([&os, &delim](const T &i) { os << i << delim; });
+					auto i = head;
+					for (; i->next; i = i->next)
+						os << i->value << delim;
+					os << i->value;
+				}
+
+				/// \brief Streams all container nodes to sstream.
+				auto stream(std::stringstream &ss, const std::string &delim = " ") const
+					-> decltype(has_operator_ostream<T>::value)
+				{
+					auto i = head;
+					for (; i->next; i = i->next)
+						ss << i->value << delim;
+					ss << i->value;
 				}
 
 				void map(const std::function<void(T&)> &f)

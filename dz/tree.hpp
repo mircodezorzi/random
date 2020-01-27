@@ -165,12 +165,11 @@ namespace dz
 			return count;
 		}
 
-		/// \brief Save container to file.
+		/// \brief Stream tree
 		///
 		/// Type must implement operator<<.
-		template <typename T_ = T,
-			typename std::enable_if<has_operator_ostream<T>::value>::type* = nullptr>
-		void stream(std::ostream &os, const std::string &delim = " ", DisplayMethod method = DisplayMethod::PreOrder) const
+		auto stream(std::ostream &os, const std::string &delim = " ", DisplayMethod method = DisplayMethod::PreOrder) const
+			-> decltype(has_operator_ostream<T>::value)
 		{
 			int nth = 0;
 			if (head)
@@ -187,6 +186,18 @@ namespace dz
 		{
 			for (const auto &i : *this)
 				f(i);
+		}
+
+		void map(const std::function<void(T&, int)> &f)
+		{
+			for (Iterator it = this->begin(); it != this->end(); ++it)
+				f(*it, it.level());
+		}
+
+		void map(const std::function<void(const T&, int)> &f) const
+		{
+			for (Iterator it = this->begin(); it != this->end(); ++it)
+				f(*it, it.level());
 		}
 
 		/// \brief If a tree gets mutated by a function applied to it, this
@@ -207,6 +218,7 @@ namespace dz
 	private:
 		detail::Node<T> *n;
 		T               *value;
+		int              depth;
 
 		containers::Stack<detail::Node<T>*> backtrack;
 
@@ -218,6 +230,7 @@ namespace dz
 		Iterator(detail::Node<T> *n_)
 			: n{n_}
 			, value{&n_->value}
+			, depth{1}
 			, backtrack{}
 			, next{true}
 			, prev{true}
@@ -243,7 +256,6 @@ namespace dz
 			}
 		}
 
-
 		bool operator!=(Iterator _)
 		{
 			prev = next;
@@ -252,6 +264,11 @@ namespace dz
 		}
 
 		T &operator*() { return *value; }
+
+		int level() const
+		{
+			return depth;
+		}
 
 	};
 
