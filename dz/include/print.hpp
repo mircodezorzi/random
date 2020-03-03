@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "string.hpp"
+#include "vector.hpp"
 
 namespace dz
 {
@@ -11,9 +12,25 @@ namespace dz
 	{
 
 		template <typename T>
+		void raw_print(const T &i)
+		{
+			std::cout << i;
+		}
+
+		template <typename T>
 		void print(const T &i)
 		{
 			std::cout << i;
+		}
+
+		void print(const std::string &i)
+		{
+			std::cout << "\"" << i << "\"";
+		}
+
+		void print(const dz::String &i)
+		{
+			std::cout << "\"" << i << "\"";
 		}
 
 		template <typename T, typename ... Args>
@@ -40,22 +57,6 @@ namespace dz
 		}
 
 		template <typename T>
-		void print(const std::map<dz::String, T> &m)
-		{
-			auto it = m.begin();
-
-			std::cout << "{";
-			while (it != m.end()) {
-				std::cout << "\"";
-				detail::print(it->first);
-				std::cout << "\": ";
-				detail::print(it->second);
-				if (++it != m.end()) std::cout << ", ";
-			}
-			std::cout << "}";
-		}
-
-		template <typename T>
 		void print(const std::vector<T> &v)
 		{
 			if (!v.size()) {
@@ -63,7 +64,7 @@ namespace dz
 				return;
 			}
 			std::cout << "[";
-			for (int i = 0; i < v.size() - 1; i++) {
+			for (unsigned i = 0; i < v.size() - 1; i++) {
 				detail::print(v[i]);
 				std::cout << ", ";
 			}
@@ -71,16 +72,20 @@ namespace dz
 			std::cout << "]";
 		}
 
-		void print(const std::vector<dz::String> &v)
+		template <typename T>
+		void print(const dz::Vector<T> &v)
 		{
 			if (!v.size()) {
 				std::cout << "[]";
 				return;
 			}
 			std::cout << "[";
-			for (int i = 0; i < v.size() - 1; i++)
-				std::cout << "\"" << v[i] << "\", ";
-			std::cout << "\"" << v[v.size() - 1] << "\"]";
+			for (unsigned i = 0; i < v.size() - 1; i++) {
+				detail::print(v[i]);
+				std::cout << ", ";
+			}
+			detail::print(v[v.size() - 1]);
+			std::cout << "]";
 		}
 
 	}

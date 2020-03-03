@@ -26,14 +26,6 @@ namespace dz
 			}
 		}
 
-	public:
-		using detail::Container<T>::Container;
-		using detail::Container<T>::empty;
-		using detail::Container<T>::pop;
-		using detail::Container<T>::push;
-
-		auto pop(int index) -> T& = delete;
-
 		auto _push(const T &val) -> void override
 		{
 			if (empty()) {
@@ -47,12 +39,6 @@ namespace dz
 			}
 		}
 
-		auto top() -> T
-		{
-			if (empty()) throw EmptyContainer{};
-			return tail->value;
-		}
-
 		auto _pop() -> T override
 		{
 			if (empty()) throw EmptyContainer{};
@@ -61,6 +47,20 @@ namespace dz
 			head = head->next;
 			if (empty()) tail = nullptr;
 			return v;
+		}
+
+	public:
+		using detail::Container<T>::Container;
+		using detail::Container<T>::empty;
+		using detail::Container<T>::pop;
+		using detail::Container<T>::push;
+
+		auto pop(int index) -> T& = delete;
+
+		auto top() -> T
+		{
+			if (empty()) throw EmptyContainer{};
+			return tail->value;
 		}
 
 	};

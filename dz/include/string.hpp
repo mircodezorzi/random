@@ -4,38 +4,37 @@
 #include <string>
 #include <vector>
 
-#include "macros.hpp"
-
 namespace dz
 {
 
 	class String final : public std::string
 	{
 		static constexpr const char* ws = " \t\n\r\f\v";
+		using std::string::replace;
 
 	public:
 		String()                       : std::string{""}  {}
 		String(const char *str)        : std::string{str} {}
 		String(const std::string &str) : std::string{str} {}
 
-		DZ_NODISCARD auto split(const String &delims = " ") -> std::vector<String>
+		auto split(const String &delims = " ") const -> std::vector<String>
 		{
 			std::vector<String> output{};
 
-			int first = 0;
+			std::string::size_type first = 0;
 			while (first < this->size()) {
 				const auto second = this->find_first_of(delims, first);
 				if (first != second)
-					output.emplace_back(this->substr(first, second - first));
+					output.push_back(this->substr(first, second - first));
 				if (second == std::string::npos) break;
 				first = second + 1;
 			}
 			return output;
 		}
 
-		DZ_NODISCARD auto replace(const String &from, const String &to) -> String
+		auto replace(const String &from, const String &to) const -> String
 		{
-			std::string str = *this;
+			dz::String str = *this;
 			std::string::size_type n = 0;
 			while ((n = str.find(from, n)) != std::string::npos) {
 					str.replace(n, from.size(), to);
@@ -44,29 +43,33 @@ namespace dz
 			return str;
 		}
 
-		auto rtrim(const char* t = ws) -> void
+		auto rtrim(const char* t = ws) const -> String
 		{
-				this->erase(this->find_last_not_of(t) + 1);
+			auto s = *this;
+			s.erase(s.find_last_not_of(t) + 1);
+			return s;
 		}
 
-		auto ltrim(const char* t = ws) -> void
+		auto ltrim(const char* t = ws) const -> String
 		{
-				this->erase(0, this->find_first_not_of(t));
+			auto s = *this;
+			s.erase(0, s.find_first_not_of(t));
+			return s;
 		}
 
-		auto trim(const char* t = ws) -> void
+		auto trim(const char* t = ws) const -> String
 		{
-			ltrim(t);
-			rtrim(t);
+			auto s = *this;
+			return s.ltrim(t).rtrim(t);
 		}
 
 	};
 
-	DZ_NODISCARD inline auto join (const String &delim, const std::vector<String> &v) -> String
+	inline auto join (const String &delim, const std::vector<String> &v) -> String
 	{
 		if (!v.size()) return "";
 		String s;
-		for (int i = 0; i < v.size() - 1; i++)
+		for (unsigned i = 0; i < v.size() - 1; i++)
 			s+= v[i] + delim;
 		s += v[v.size() - 1];
 		return s;

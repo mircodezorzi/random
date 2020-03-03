@@ -25,25 +25,9 @@ namespace dz
 			}
 		}
 
-	public:
-		using detail::Container<T>::Container;
-		using detail::Container<T>::empty;
-		using detail::Container<T>::pop;
-		using detail::Container<T>::push;
-
-		auto pop(int pos) -> T = delete;
-
 		auto _push(const T &val) -> void override
 		{
 			head = std::make_shared<node_type>(val, head);
-		}
-
-		auto top() -> T
-		{
-			if (empty()) {
-				throw EmptyContainer{};
-			}
-			return head->value;
 		}
 
 		auto _pop() -> T override
@@ -55,6 +39,22 @@ namespace dz
 			auto v = tmp->value;
 			head = head->next;
 			return v;
+		}
+
+	public:
+		using detail::Container<T>::Container;
+		using detail::Container<T>::empty;
+		using detail::Container<T>::pop;
+		using detail::Container<T>::push;
+
+		auto pop(int pos) -> T = delete;
+
+		auto top() -> T
+		{
+			if (empty()) {
+				throw EmptyContainer{};
+			}
+			return head->value;
 		}
 
 	};

@@ -30,6 +30,17 @@ namespace dz
 
 		const std::function<bool(const T&, const T&)> &compare = create_compare();
 
+		auto _push(const T &val) -> void override
+		{
+			if (empty() || !compare(val, head->value)) {
+				head = std::make_shared<node_type>(val, head);
+			} else {
+				auto cur = head;
+				while (cur->next && compare(val, cur->next->value)) cur = cur->next;
+				cur->next = std::make_shared<node_type>(val, cur->next);
+			}
+		}
+
 	public:
 		using List<T>::empty;
 		using List<T>::push;
@@ -41,17 +52,6 @@ namespace dz
 		OrderedList(std::function<bool(const T&, const T&)> compare_,
 								std::function<bool(const T&, const T&)> equals_)
 			: List<T>{equals_} , compare{compare_} {}
-
-		auto _push(const T &val) -> void override
-		{
-			if (empty() || !compare(val, head->value)) {
-				head = std::make_shared<node_type>(val, head);
-			} else {
-				auto cur = head;
-				while (cur->next && compare(val, cur->next->value)) cur = cur->next;
-				cur->next = std::make_shared<node_type>(val, cur->next);
-			}
-		}
 
 	};
 

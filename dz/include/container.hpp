@@ -10,6 +10,7 @@
 #include "exceptions.hpp"
 #include "macros.hpp"
 #include "sfinae.hpp"
+#include "string.hpp"
 
 namespace dz
 {
@@ -40,6 +41,8 @@ namespace dz
 			using node_type = Node<T>;
 			using node_wrap = std::shared_ptr<Node<T>>;
 			using size_type = unsigned long int;
+
+			int npos = -1;
 
 		protected:
 			node_wrap head;
@@ -149,7 +152,7 @@ namespace dz
 			}
 
 			/// \brief Load container from file.
-			auto load(const std::string &filepath, const std::function<T(const std::string&)> &callback) -> void
+			auto load(const std::string &filepath, const std::function<T(const dz::String&)> &callback) -> void
 			{
 				std::string s;
 				std::ifstream f;
@@ -163,16 +166,16 @@ namespace dz
 			auto save(const std::string &filepath) const
 				-> decltype(has_operator_ostream<T>::value, void())
 			{
-				std::ifstream f;
+				std::ofstream f;
 				f.open(filepath);
 				map([&f](const T &i) { f << i << '\n'; });
 				f.close();
 			}
 
 			/// \brief Save container to file.
-			auto save(const std::string &filepath, const std::function<T(const std::string&)> &callback) const -> void
+			auto save(const std::string &filepath, const std::function<std::string(const T&)> &callback) const -> void
 			{
-				std::ifstream f;
+				std::ofstream f;
 				f.open(filepath);
 				map([&f, &callback](const T &i) { f << callback(i) << '\n'; });
 				f.close();
@@ -189,8 +192,19 @@ namespace dz
 				os << i->value;
 			}
 
+			/// \brief Streams container nodes to ostream.
+			auto stream(std::ostream &os, const std::string &delim, const std::function<std::string(T&)> &f) const
+				-> decltype(has_operator_ostream<T>::value, void())
+			{
+				auto i = head.get();
+				for (; i->next.get(); i = i->next.get()) {
+					os << f(i->value) << delim;
+				}
+				os << f(i->value);
+			}
+
 			/// \brief Streams container nodes to sstream.
-			auto stream(std::stringstream &ss, const std::string &delim = " ") const
+			auto stream(std::stringstream &ss, const std::string &delim) const
 				-> decltype(has_operator_ostream<T>::value, void())
 			{
 				auto i = head.get();
@@ -208,6 +222,14 @@ namespace dz
 				std::cout << "]\n";
 			}
 
+			/// \brief Print container to stdout.
+			auto print(const std::function<std::string(T&)> &f) const -> void
+			{
+				std::cout << "[";
+				stream(std::cout, ", ", f);
+				std::cout << "]\n";
+			}
+
 			/// \brief Map function to container.
 			auto map(const std::function<void(T&)> &f) -> void
 			{
@@ -222,6 +244,16 @@ namespace dz
 				for (auto i = head.get(); i; i = i->next.get()) {
 					f(i->value);
 				}
+			}
+
+			auto find(const std::function<bool(const T&)> &f) const -> int
+			{
+				int index = 0;
+				for (auto i = head.get(); i; i = i->next.get()) {
+					if (f(i->value)) return index;
+					index++;
+				}
+				return npos;
 			}
 
 		};

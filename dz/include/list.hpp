@@ -41,41 +41,6 @@ namespace dz
 
 		const std::function<bool(const T&, const T&)> &equals = create_equals();
 
-	public:
-		using detail::Container<T>::push;
-		using detail::Container<T>::pop;
-		using detail::Container<T>::size;
-
-		template <typename _ = decltype(has_operator_greater<T>::value)>
-		List()
-			: detail::Container<T>{} {}
-
-		List(std::function<bool(const T&, const T&)> equals_)
-			: detail::Container<T>{}
-			, equals{equals_} {}
-
-		auto operator[](size_type index) -> T&
-		{
-			if (index >= size()) {
-				throw OutOfRange{};
-			}
-			auto i = head.get();
-			for (; index; i = i->next.get());
-			return i;
-		}
-
-		/// \brief Return index of val, npos if not present
-		auto index(const T &val) -> size_type
-		{
-			int index = 0;
-			for (const auto &i : *this) {
-				if (equals(val, i))
-					return
-				index++;
-			}
-			return npos;
-		}
-
 		auto _push(const T &val) -> void override
 		{
 			head = std::make_shared<node_type>(val, head);
@@ -107,6 +72,42 @@ namespace dz
 				cur->next = cur->next->next;
 				return v;
 			}
+		}
+
+
+	public:
+		using detail::Container<T>::push;
+		using detail::Container<T>::pop;
+		using detail::Container<T>::size;
+
+		template <typename _ = decltype(has_operator_greater<T>::value)>
+		List()
+			: detail::Container<T>{} {}
+
+		List(std::function<bool(const T&, const T&)> equals_)
+			: detail::Container<T>{}
+			, equals{equals_} {}
+
+		auto operator[](size_type index) -> T&
+		{
+			if (index >= size()) {
+				throw OutOfRange{};
+			}
+			auto i = head.get();
+			for (; index; i = i->next.get(), index--);
+			return i->value;
+		}
+
+		/// \brief Return index of val, npos if not present
+		auto index(const T &val) -> size_type
+		{
+			int index = 0;
+			for (const auto &i : *this) {
+				if (equals(val, i))
+					return
+				index++;
+			}
+			return npos;
 		}
 
 	};
