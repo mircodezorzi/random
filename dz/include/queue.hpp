@@ -7,56 +7,59 @@ namespace dz
 {
 
 	template <typename T>
-	class Queue : public detail::Container<T>
+	class Queue final : public detail::Container<T>
 	{
-		using Node = detail::Node<T>;
+	public:
+		using node_type = typename detail::Container<T>::node_type;
+		using node_wrap = typename detail::Container<T>::node_wrap;
 
-	protected:
+	private:
+		using detail::Container<T>::count;
 		using detail::Container<T>::head;
 		using detail::Container<T>::tail;
-		using detail::Container<T>::count;
 
-		void deepcopy(std::shared_ptr<Node> n) override
+		auto _deepcopy(node_wrap n) -> void override
 		{
 			if(n) {
 				push(n->value);
-				deepcopy(n->next);
+				_deepcopy(n->next);
 			}
 		}
 
 	public:
+		using detail::Container<T>::Container;
+		using detail::Container<T>::empty;
 		using detail::Container<T>::pop;
 		using detail::Container<T>::push;
-		using detail::Container<T>::Container;
 
-		T pop(int i) = delete;
+		auto pop(int index) -> T& = delete;
 
-		void _push(const T &i) override
+		auto _push(const T &val) -> void override
 		{
-			if (this->empty()) {
-				auto tmp = std::make_shared<Node>(i, head);
+			if (empty()) {
+				auto tmp = std::make_shared<node_type>(val, head);
 				head = tmp;
 				tail = tmp;
 			} else {
-				auto tmp = std::make_shared<Node>(i, nullptr);
+				auto tmp = std::make_shared<node_type>(val, nullptr);
 				tail->next = tmp;
 				tail       = tmp;
 			}
 		}
 
-		T top()
+		auto top() -> T
 		{
-			if (this->empty()) throw EmptyContainer{};
+			if (empty()) throw EmptyContainer{};
 			return tail->value;
 		}
 
-		T _pop() override
+		auto _pop() -> T override
 		{
-			if (this->empty()) throw EmptyContainer{};
+			if (empty()) throw EmptyContainer{};
 			auto tmp = head;
 			auto v   = tmp->value;
 			head = head->next;
-			if (this->empty()) tail = nullptr;
+			if (empty()) tail = nullptr;
 			return v;
 		}
 

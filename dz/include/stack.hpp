@@ -7,43 +7,50 @@ namespace dz
 {
 
 	template <typename T>
-	class Stack : public detail::Container<T>
+	class Stack final : public detail::Container<T>
 	{
-		using Node = detail::Node<T>;
+	public:
+		using node_type = typename detail::Container<T>::node_type;
+		using node_wrap = typename detail::Container<T>::node_wrap;
 
 	protected:
-		using detail::Container<T>::head;
 		using detail::Container<T>::count;
+		using detail::Container<T>::head;
 
-		void deepcopy(std::shared_ptr<Node> n) override
+		auto _deepcopy(node_wrap n) -> void override
 		{
 			if(n) {
-				deepcopy(n->next);
+				_deepcopy(n->next);
 				push(n->value);
 			}
 		}
 
 	public:
+		using detail::Container<T>::Container;
+		using detail::Container<T>::empty;
 		using detail::Container<T>::pop;
 		using detail::Container<T>::push;
-		using detail::Container<T>::Container;
 
-		T pop(int val) = delete;
+		auto pop(int pos) -> T = delete;
 
-		void _push(const T &val) override
+		auto _push(const T &val) -> void override
 		{
-			head = std::make_shared<Node>(val, head);
+			head = std::make_shared<node_type>(val, head);
 		}
 
-		T top()
+		auto top() -> T
 		{
-			if (this->empty()) throw EmptyContainer{};
+			if (empty()) {
+				throw EmptyContainer{};
+			}
 			return head->value;
 		}
 
-		T _pop() override
+		auto _pop() -> T override
 		{
-			if (this->empty()) throw EmptyContainer{};
+			if (empty()) {
+				throw EmptyContainer{};
+			}
 			auto tmp = head;
 			auto v = tmp->value;
 			head = head->next;

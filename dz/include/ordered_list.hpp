@@ -9,18 +9,20 @@ namespace dz
 	template <typename T>
 	class OrderedList : public List<T>
 	{
-		using Node = detail::Node<T>;
+	public:
+		using node_type = typename detail::Container<T>::node_type;
+		using node_wrap = typename detail::Container<T>::node_wrap;
 
 	private:
-		using List<T>::head;
 		using List<T>::count;
+		using List<T>::head;
 
-		static const std::function<bool(const T&, const T&)> build_compare()
+		static auto build_compare() -> const std::function<bool(const T&, const T&)>
 		{
 			return [](const T &lhs, const T &rhs) -> bool { return lhs > rhs; };
 		}
 
-		static const std::function<bool(const T&, const T&)> &create_compare()
+		static auto create_compare() -> const std::function<bool(const T&, const T&)> &
 		{
 			static const auto c = build_compare();
 			return c;
@@ -29,22 +31,25 @@ namespace dz
 		const std::function<bool(const T&, const T&)> &compare = create_compare();
 
 	public:
+		using List<T>::empty;
 		using List<T>::push;
 
+		template <typename _ = decltype(has_operator_greater<T>::value && has_operator_equals<T>::value)>
+		OrderedList()
+			: List<T>{} {}
 
-		template <typename _ = decltype(has_operator_greater<T>::value)>
-		OrderedList() : List<T>{} {}
+		OrderedList(std::function<bool(const T&, const T&)> compare_,
+								std::function<bool(const T&, const T&)> equals_)
+			: List<T>{equals_} , compare{compare_} {}
 
-		OrderedList(std::function<bool(const T&, const T&)> compare_) : List<T>{} , compare{compare_} {}
-
-		void _push(const T &i) override
+		auto _push(const T &val) -> void override
 		{
-			if (this->empty() || !compare(i, head->value)) {
-				head = std::make_shared<Node>(i, head);
+			if (empty() || !compare(val, head->value)) {
+				head = std::make_shared<node_type>(val, head);
 			} else {
 				auto cur = head;
-				while (cur->next && compare(i, cur->next->value)) cur = cur->next;
-				cur->next = std::make_shared<Node>(i, cur->next);
+				while (cur->next && compare(val, cur->next->value)) cur = cur->next;
+				cur->next = std::make_shared<node_type>(val, cur->next);
 			}
 		}
 
