@@ -1,27 +1,37 @@
+Repository of random programs written in different languages written in different languages.
+Most of these programs were written to solve problems given to us at school, saving up 30 minutes of homework by wasting 1-2 hours writing the tools to solve these problems instantly.
+
 Some of the code here dates back to 2018 so be warned...
 
-brainfuck: Brainfuck compiler and C transpiler
-cc2019   : random exploits from the Cyber-Challenge 2019 at Padua
-dz       : functional C++11 stl
-kana     : tool to learn the Japanese alphabet (2018-07)
-modulator: JavaScript signal modulator
-IEEE     : convert floating point numbers to binary following the IEEE 754 standard (2018-11)
+Unfinished:
+	Electronics:
+		- opamp: convert formulas to circuits composed of operational amplifiers
+
+	Systems:
+		- scheduler.c: process schedule simulator (2019-02)
+	
+	Algorithms:
+		- modulator: JavaScript signal modulator
+
+Languages:
+	- brainfuck: Brainfuck compiler and C transpiler
+	- dz: functional C++11 stl
 
 Games:
-- minesweeper.c (2018-12)
-- 2048.c (2019-02)
+	- minesweeper.c (2018-12)
+	- 2048.c (2019-02)
 
 Algorithms:
-- hamming.c : hamming code exercise (2019-02)
-- hamming.py: hamming code exercise (2019-02)
-- huffman.py: text file compressor (2019-02)
-
-Systems:
-- scheduler.c: process schedule simulator (2019-02)
+	- hamming.c: hamming code exercise (2019-02)
+	- hamming.py: hamming code exercise (2019-02)
+	- huffman.py: text file compressor using huffman encoding (2019-02)
+	- IEEE: convert floating point numbers to binary following the IEEE 754 standard (2018-11)
 
 Graphics:
-- visual_sorting.c: sorting algorithms visualized with SDL2 (2018-12)
+	- visual_sorting.c: sorting algorithms visualized with SDL2 (2018-12)
 
-Networking:
-- classeviva.py: classeviva message board downloader and telegram notifier
+Other:
+	- classeviva.py: classeviva message board downloader and telegram notifier
+	- cc2019: random exploits from the Cyber-Challenge 2019 at Padua
+	- kana: tool to learn the Japanese alphabet (2018-07)
 
