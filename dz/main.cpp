@@ -1,4 +1,4 @@
-#include "dz.hpp"
+#include "include/dz.hpp"
 
 #define COMPARE_STRUCTS(type, operator, attribute) \
 	[](const type &lhs, const type &rhs) { return lhs.attribute operator rhs.attribute; }

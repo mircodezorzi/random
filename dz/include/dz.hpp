@@ -2,18 +2,18 @@
 #define DZ_HPP_
 
 // containers
-#include "include/stack.hpp"
-#include "include/queue.hpp"
-#include "include/list.hpp"
-#include "include/ordered_list.hpp"
+#include "stack.hpp"
+#include "queue.hpp"
+#include "list.hpp"
+#include "ordered_list.hpp"
 
-// other containers
-#include "include/tree.hpp"
-#include "include/vector.hpp"
+// other cs
+#include "tree.hpp"
+#include "vector.hpp"
 
 // misc
-#include "include/string.hpp"
-#include "include/print.hpp"
+#include "string.hpp"
+#include "print.hpp"
 
 namespace dz
 {

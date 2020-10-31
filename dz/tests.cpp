@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch.hpp>
 
-#include "dz.hpp"
+#include "include/dz.hpp"
 
 TEST_CASE("Stack") {
 	dz::Stack<int> s;
