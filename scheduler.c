@@ -5,11 +5,27 @@
 
 #define INITCAPACITY 4
 //#define CLEARSCHEDULE
+#define DVORAK
 
-#define CHIGH printf("\033[0;30;41m");
-#define CNORM printf("\033[0;30;0m");
+#ifdef DVORAK
 
-#define PRINTCMD(key, desc) printf("\033[0;30;41m%s\033[0;30;0m %s ", key, desc);
+#define K_QUIT  'q'
+#define K_UP    'h'
+#define K_DOWN  't'
+#define K_LEFT  'd'
+#define K_RIGHT 'n'
+
+#else
+
+#define K_QUIT  'q'
+#define K_UP    'h'
+#define K_DOWN  'j'
+#define K_LEFT  'k'
+#define K_RIGHT 'l'
+
+#endif
+
+#define PRINTCMD(key, desc) printf("\033[0;30;41m%c\033[0;30;0m %s ", key, desc);
 
 #define cursorup(x)    printf("\033[%dA", x);
 #define cursordown(x)  printf("\033[%dB", x);
@@ -48,7 +64,6 @@ struct Queue {
 struct Core {
     Process process;
     int executing;
-    int quantummed;
 };
 
 struct Cpu {
@@ -89,7 +104,6 @@ newqueue()
     q.capacity = INITCAPACITY;
     q.total = 0;
     q.processes = malloc(sizeof(Process) * 128);
-    q.type = FCFS;
     return q;
 }
 
@@ -127,6 +141,7 @@ Process
 nextqueue(Queue *q)
 {
     Process p;
+    int shortest = 0;
 
     switch(q->type) {
     case FCFS:
@@ -136,9 +151,13 @@ nextqueue(Queue *q)
         return p;
     case SJF:
         p = q->processes[0];
-        for(int i = 1; i < q->total; i++)
-            if(q->processes[i].length < p.length)
+        for(int i = 1; i < q->total; i++) {
+            if(q->processes[i].length < p.length) {
                 p = q->processes[i];
+                shortest = i;
+            }
+        }
+        removequeue(q, shortest);
         return p;
     }
 }
@@ -154,10 +173,8 @@ newcpu(int ncores, int quantum, Queue *ready, int nready, Process *schedule, int
     cpu->quantum = quantum;
 
     cpu->cores = malloc(sizeof(Core) * ncores);
-    for(int i = 0; i < ncores; i++) {
+    for(int i = 0; i < ncores; i++)
         cpu->cores[i].executing = 0;
-        cpu->cores[i].quantummed = quantum;
-    }
 
     cpu->schedule = malloc(sizeof(Process) * nschedule);
     cpu->nschedule = nschedule;
@@ -168,8 +185,10 @@ newcpu(int ncores, int quantum, Queue *ready, int nready, Process *schedule, int
 
     cpu->nready = nready;
     cpu->ready = malloc(sizeof(Queue) * nready);
-    for(int i = 0; i < nready; i++)
+    for(int i = 0; i < nready; i++) {
         cpu->ready[i] = newqueue();
+        cpu->ready[i].type = ready[i].type;
+    }
 
     return cpu;
 }
@@ -214,20 +233,12 @@ updatecores(Cpu *cpu)
                 appendqueue(&cpu->done, cpu->cores[i].process);
                 cpu->cores[i].process.name = NULL;
                 cpu->cores[i].executing = 0;
-            } else {
-                if(cpu->ready[0].type == RR) {
-                    cpu->cores[i].quantummed--;
-                    if(!cpu->cores[i].quantummed) {
-                        for(int j = 0; j < cpu->nready; j++) {
-                            cpu->cores[i].quantummed = cpu->quantum;
-                            appendqueue(&cpu->ready[0], cpu->cores[i].process);
-                            cpu->cores[i].executing = 0;
-                        }
-                    }
-                }
+            } else if(!(cpu->cores[i].process.ellapsed % cpu->quantum)) {
+                appendqueue(&cpu->ready[0], cpu->cores[i].process);
+                cpu->cores[i].process.name = NULL;
+                cpu->cores[i].executing = 0;
             }
         }
-
         if(!cpu->cores[i].executing) {
             for(int j = 0; j < cpu->nready; j++) {
                 if(cpu->ready[j].total) {
@@ -240,8 +251,8 @@ updatecores(Cpu *cpu)
                 }
             }
         }
-
     }
+
     for(int i = 0; i < cpu->nready; i++) {
         for(int j = 0; j < cpu->ready[i].total; j++) {
             cpu->ready[i].processes[j].waited += 1;
@@ -412,11 +423,13 @@ void
 drawstatus(int w, int h)
 {
     cursorto(0, h);
-    PRINTCMD("q", "quit");
-    PRINTCMD("h", "right");
-    PRINTCMD("j", "down");
-    PRINTCMD("k", "up");
-    PRINTCMD("l", "left");
+    PRINTCMD(K_QUIT, "quit");
+    PRINTCMD(K_RIGHT, "right");
+    PRINTCMD(K_DOWN, "down");
+    PRINTCMD(K_UP, "up");
+    PRINTCMD(K_LEFT, "left");
+    PRINTCMD("space", "advance");
+    PRINTCMD("dot", "advance 10");
 }
 
 void
@@ -486,62 +499,70 @@ main()
 
     while(1) {
 
-        cursorto(11, 9);
+        cursorto(11, 4);
         printf("\033[1mSchedule\033[0;0m");
-        drawstack(10, 10, 15, 10, cpu->schedule, cpu->nschedule);
+        drawstack(10, 5, 15, 10, cpu->schedule, cpu->nschedule);
 
         for(int j = 0; j < cpu->nready; j++) {
-            cursorto(28 + j * 16, 9);
+            cursorto(28 + j * 16, 4);
             printf("\033[1mReadyList %d\033[0;0m", j);
-            drawstack(27 + j * 16, 10, 15, 10, cpu->ready[j].processes, cpu->ready[j].total);
+            drawstack(27 + j * 16, 5, 15, 10, cpu->ready[j].processes, cpu->ready[j].total);
         }
 
-        drawcores(10, 22, 24, 10, cpu->cores, cpu->ncores, sp ? -1 : si);
+        drawcores(10, 18, 24, 10, cpu->cores, cpu->ncores, sp ? -1 : si);
         if(!sp)
-            drawinfo(47, 22, 10, 10, cpu->cores[si].process);
+            drawinfo(47, 18, 10, 10, cpu->cores[si].process);
         else
-            clear(47, 22, 10, 15);
+            clear(47, 18, 10, 15);
 
-        drawstack(10, 28, 32, 16, cpu->done.processes, cpu->done.total);
+        drawstack(10, 24, 32, 16, cpu->done.processes, cpu->done.total);
         if(sp) {
-            drawprocess(47, 29, 10, 10, cpu->done.processes[si]);
-            if(cpu->done.total) drawaverage(47, 40, averageprocesses(cpu->done.processes, cpu->done.total));
-            clear(9, 29, 10, 1);
-            cursorto(9, si + 29);
+            drawprocess(47, 25, 10, 10, cpu->done.processes[si]);
+            if(cpu->done.total) drawaverage(47, 36, averageprocesses(cpu->done.processes, cpu->done.total));
+            clear(9, 25, 10, 1);
+            cursorto(9, si + 25);
             printf(">");
         } else {
-            clear(47, 29, 10, 15);
+            clear(47, 25, 20, 15);
         }
 
         drawstatus(win.ws_col, win.ws_row);
 
-        cursorto(23, 7);
+        cursorto(23, 3);
         printf("tick: %d", cpu->tick);
 
         switch(getchar()){
-        case 'h':
+
+        case K_UP:
             if(!sp && si < cpu->ncores - 1)         si++;
             else if(sp && si < cpu->done.total - 1) si++;
             break;
-        case 't':
+        case K_DOWN:
             if(!sp && si > 0) si--;
             else if(sp && si > 0) si--;
             break;
-        case 'd':
-        case 'n':
+        case K_LEFT:
+        case K_RIGHT:
             sp = !sp;
+            si = 0;
             break;
-        case 'q':
+        case K_QUIT:
             endwin();
             free(cpu);
             return 0;
-        default:
+        case ' ':
             updateready(cpu);
             updatecores(cpu);
             cpu->tick++;
             break;
+        case '.':
+            for(int i = 0; i < 10; i++) {
+                updateready(cpu);
+                updatecores(cpu);
+                cpu->tick++;
+            }
+            break;
         }
-
     }
 
     endwin();
